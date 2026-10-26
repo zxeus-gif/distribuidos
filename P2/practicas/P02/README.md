@@ -229,7 +229,27 @@ Los detalles completos de cada SLO se mantienen en [`docs/slo.md`](../../docs/sl
 
 ## 6. Cláusula de SLA
 
-Pendiente.
+### Acuerdo de Nivel de Servicio de la tienda en línea
+
+**Compromiso mensual de disponibilidad.** El servicio de tienda en línea se compromete a mantener una disponibilidad mensual de al menos **99.0%** para su API pública y las funciones esenciales de consulta de catálogo, carrito y creación de órdenes. La disponibilidad se calculará sobre los minutos del periodo mensual aplicable a partir de las mediciones de la API y del monitor sintético externo.
+
+**Definición de indisponibilidad.** Se considerará un minuto como no disponible cuando, durante ese minuto, todos los intentos válidos de acceso a la API pública fallen por causas atribuibles al sistema, produzcan errores HTTP 5xx o no obtengan una respuesta correcta dentro del tiempo máximo configurado por el monitor. No se consideran fallas del servicio los errores HTTP 4xx producidos por solicitudes inválidas del cliente ni los health checks internos.
+
+**Mantenimiento y exclusiones.** No se contabilizará como indisponibilidad: (1) una ventana de mantenimiento programado de hasta **60 minutos por semana**, siempre que sea anunciada previamente; (2) fallas ocasionadas por dispositivos, redes, credenciales, configuraciones o acciones del cliente; (3) fallas de servicios externos o de terceros fuera del control razonable del equipo; (4) eventos de fuerza mayor; (5) uso abusivo, intentos que excedan cuotas o límites publicados; y (6) funciones experimentales o en versión preliminar que hayan sido identificadas como tales.
+
+**Créditos de servicio.** Si la disponibilidad mensual medida incumple el compromiso de 99.0%, el cliente podrá solicitar un crédito sobre el importe mensual correspondiente al servicio afectado, de acuerdo con los siguientes escalones:
+
+| Disponibilidad mensual obtenida | Crédito de servicio |
+|---:|---:|
+| De 98.0% a < 99.0% | 10% |
+| De 95.0% a < 98.0% | 25% |
+| < 95.0% | 50% |
+
+El crédito no podrá exceder el importe pagado por el servicio afectado durante el periodo de la reclamación y constituye la compensación prevista por este SLA.
+
+**Procedimiento de reclamación.** El cliente deberá presentar la reclamación dentro de los **30 días naturales posteriores al incidente**, indicando fecha y hora, duración estimada, función afectada, evidencia disponible y descripción del impacto. El equipo contrastará la reclamación con los registros de Application Insights, Azure Monitor y el monitor sintético. Una reclamación validada generará el crédito correspondiente al escalón de disponibilidad mensual alcanzado.
+
+**Relación entre SLO y SLA.** El SLO interno de disponibilidad se fijó en **99.5%**, mientras que el SLA externo se establece en **99.0%**. El objetivo interno es deliberadamente más exigente para conservar un margen de seguridad que permita detectar y corregir degradaciones antes de incumplir la promesa realizada al cliente.
 
 ## 7. Preguntas de análisis
 
@@ -267,4 +287,4 @@ Pendiente: declarar el apoyo utilizado y verificar que cada integrante pueda exp
 
 | Integrante | Contribución | Commit |
 |---|---|---|
-| Roberto | Análisis de SLA de Azure, disponibilidad compuesta y definición inicial de SLIs/SLOs del proyecto | Ver historial de commits |
+| Roberto | Análisis de SLA de Azure, disponibilidad compuesta, definición de SLIs/SLOs y redacción de la cláusula SLA del proyecto | Ver historial de commits |
