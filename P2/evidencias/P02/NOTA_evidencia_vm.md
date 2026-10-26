@@ -1,0 +1,1 @@
+Las capturas de Azure Virtual Machines corresponden a las páginas 105 y 106 del SLA oficial de Microsoft de octubre de 2026. Se usarán como evidencia del análisis de disponibilidad y créditos.
