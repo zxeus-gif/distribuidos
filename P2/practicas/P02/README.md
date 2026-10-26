@@ -161,15 +161,71 @@ Por lo tanto, la arquitectura redundante tiene una disponibilidad compuesta apro
 - **Serie:** Load Balancer, Azure SQL Database y Azure Blob Storage.
 - **Redundante/paralelo:** capa de Azure Virtual Machines entre zonas de disponibilidad.
 
-## 5. SLOs del proyecto
+## 5. SLIs, SLOs y presupuesto de error
+
+La práctica solicita definir entre dos y tres SLIs con eventos válidos y buenos claramente especificados, punto de medición, ventana móvil de 30 días, objetivo realista, presupuesto de error y alertas al 50% y al 100%. Para la tienda se seleccionan disponibilidad de la API, latencia p95 y creación de órdenes.
 
 ### Tabla 3. SLOs
 
 | SLO | SLI (buenos ÷ válidos) | Punto de medición | Ventana | Objetivo | Presupuesto (min) | Alertas (50 % / 100 %) | Herramienta |
 |---|---|---|---|---:|---:|---|---|
-| Disponibilidad | | | 30 días | | | | |
-| Latencia p95 | | | 30 días | | | | |
-| De dominio | | | 30 días | | | | |
+| Disponibilidad de la API | Peticiones válidas con respuesta 2xx/3xx ÷ peticiones válidas. Se excluyen health checks y errores 4xx provocados por el cliente. | API / telemetría de aplicación y verificación externa | 30 días móviles | **99.5%** | **216 min** | **108 / 216 min** | Azure Monitor + Application Insights + monitor sintético externo |
+| Latencia p95 | Minutos válidos con tráfico en los que la latencia p95 de las peticiones válidas es < 500 ms ÷ minutos válidos con tráfico | API / Application Insights | 30 días móviles | **95%** | **2,160 min** | **1,080 / 2,160 min** | Azure Monitor + Application Insights |
+| Órdenes creadas con éxito | Intentos válidos de creación de orden que terminan correctamente ÷ intentos válidos de creación de orden. Se excluyen solicitudes inválidas rechazadas con 4xx. | Endpoint `POST /orders` y base de datos de órdenes | 30 días móviles | **99.0%** | **432 min equivalentes** | **216 / 432 min** | Application Insights + registros de la API / Azure SQL |
+
+### 5.1 SLO de disponibilidad
+
+Se adopta un objetivo interno de **99.5%**, menor que el techo contractual compuesto de la arquitectura base (**99.7801%**) y suficientemente separado de él para dejar margen a fallas propias de la aplicación, despliegues y errores de configuración.
+
+```text
+Presupuesto = (1 - 0.995) × 43,200
+            = 216 minutos
+```
+
+- Al consumir **108 min (50%)**, se genera advertencia y se revisan errores, cambios recientes y capacidad.
+- Al consumir **216 min (100%)**, se congelan despliegues de funciones nuevas y solo se permiten correcciones de confiabilidad.
+
+### 5.2 SLO de latencia p95
+
+Para evitar que una aplicación técnicamente disponible sea demasiado lenta para el usuario, se define como intervalo bueno aquel minuto con tráfico en el que el percentil 95 de latencia de las peticiones válidas es menor a **500 ms**.
+
+El objetivo es que al menos **95%** de los minutos válidos de la ventana cumplan el umbral.
+
+```text
+Presupuesto = (1 - 0.95) × 43,200
+            = 2,160 minutos
+```
+
+- Advertencia al consumir **1,080 min**.
+- Alerta crítica al consumir **2,160 min**.
+
+### 5.3 SLO de dominio — creación de órdenes
+
+El SLI de dominio mide la función principal de la tienda: que una orden válida sea creada correctamente. Se consideran válidos los intentos que pasan la validación de entrada; los errores 4xx ocasionados por datos incorrectos del cliente no se cuentan como fallas del sistema.
+
+El objetivo es **99.0% de órdenes creadas correctamente**. Para la tabla se registra el equivalente temporal del presupuesto solicitado por la práctica:
+
+```text
+Presupuesto equivalente = (1 - 0.99) × 43,200
+                         = 432 minutos
+```
+
+Operativamente, al ser un SLI basado en eventos, el presupuesto real también significa que como máximo **1% de los intentos válidos de creación de orden** pueden fallar dentro de la ventana.
+
+- Advertencia al equivalente del **50%: 216 min** o al consumir 0.5% de intentos válidos fallidos.
+- Alerta crítica al equivalente del **100%: 432 min** o al alcanzar 1% de intentos válidos fallidos.
+
+### 5.4 Política del presupuesto de error
+
+La política común para los tres SLOs será la siguiente:
+
+1. Mientras el consumo sea menor al 50%, el desarrollo continúa normalmente.
+2. Al alcanzar 50%, se revisan logs, métricas, cambios recientes y capacidad; los despliegues de mayor riesgo requieren revisión antes de liberarse.
+3. Al alcanzar 100%, se congelan nuevas funcionalidades y únicamente se realizan correcciones de errores, rendimiento, disponibilidad o seguridad.
+4. Los despliegues de funciones nuevas se reanudan cuando la ventana móvil recupere al menos **25% del presupuesto de error**.
+5. El responsable operativo será **Roberto**, con revisión del equipo del proyecto cuando se incorporen los demás integrantes.
+
+Los detalles completos de cada SLO se mantienen en [`docs/slo.md`](../../docs/slo.md).
 
 ## 6. Cláusula de SLA
 
@@ -211,4 +267,4 @@ Pendiente: declarar el apoyo utilizado y verificar que cada integrante pueda exp
 
 | Integrante | Contribución | Commit |
 |---|---|---|
-| | | |
+| Roberto | Análisis de SLA de Azure, disponibilidad compuesta y definición inicial de SLIs/SLOs del proyecto | Ver historial de commits |
