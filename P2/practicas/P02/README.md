@@ -20,17 +20,146 @@ Pendiente: proveedor, región, servicios y diagrama de arquitectura.
 
 ## 4. Disponibilidad compuesta
 
+### 4.1 Cadena de dependencias
+
+Para el proyecto de tienda en línea se considera la siguiente cadena de dependencias:
+
+```text
+Usuario
+  ↓
+Azure Standard Load Balancer
+  ↓
+Azure Virtual Machines
+  ↓
+Azure SQL Database
+  ↓
+Azure Blob Storage
+```
+
+Se analizaron dos escenarios:
+
+**Escenario 1 — Arquitectura base sin redundancia**
+
+- Azure Standard Load Balancer.
+- 1 Azure Virtual Machine con SSD Premium.
+- Azure SQL Database no redundante.
+- Azure Blob Storage con ZRS.
+
+**Escenario 2 — Arquitectura mejorada con redundancia**
+
+- Azure Standard Load Balancer.
+- 2 Azure Virtual Machines distribuidas en 2 Zonas de Disponibilidad.
+- Azure SQL Database con redundancia por zona.
+- Azure Blob Storage con ZRS.
+
+Los componentes principales se modelan en serie; en el escenario mejorado, la capa de cómputo utiliza dos máquinas virtuales en zonas distintas como configuración redundante.
+
+### 4.2 Fórmula utilizada
+
+Para componentes en serie, la disponibilidad compuesta se obtiene multiplicando las disponibilidades individuales:
+
+```text
+Acompuesta = a1 × a2 × a3 × ... × an
+```
+
+Para convertir la disponibilidad obtenida en minutos máximos de indisponibilidad en una ventana de 30 días:
+
+```text
+Minutos de inactividad = (1 - disponibilidad) × 43,200
+```
+
+### 4.3 Escenario 1 — Sin redundancia
+
+SLA considerados:
+
+- Azure Standard Load Balancer = 99.99%.
+- Azure Virtual Machine individual con SSD Premium = 99.9%.
+- Azure SQL Database no redundante = 99.99%.
+- Azure Blob Storage ZRS = 99.9%.
+
+Cálculo:
+
+```text
+A = 0.9999 × 0.999 × 0.9999 × 0.999
+A = 0.99780140978001
+A = 99.7801%
+```
+
+Minutos máximos de inactividad:
+
+```text
+(1 - 0.99780140978001) × 43,200 = 94.98 minutos
+```
+
+Por lo tanto, la arquitectura base tiene una disponibilidad compuesta aproximada de **99.7801%**, equivalente a **94.98 minutos de indisponibilidad al mes**.
+
+### 4.4 Escenario 2 — Con redundancia
+
+SLA considerados:
+
+- Azure Standard Load Balancer = 99.99%.
+- Azure Virtual Machines en 2 Zonas de Disponibilidad = 99.99%.
+- Azure SQL Database con redundancia por zona = 99.995%.
+- Azure Blob Storage ZRS = 99.9%.
+
+Cálculo:
+
+```text
+A = 0.9999 × 0.9999 × 0.99995 × 0.999
+A = 0.9987502699795006
+A = 99.8750%
+```
+
+Minutos máximos de inactividad:
+
+```text
+(1 - 0.9987502699795006) × 43,200 = 53.99 minutos
+```
+
+Por lo tanto, la arquitectura redundante tiene una disponibilidad compuesta aproximada de **99.8750%**, equivalente a **53.99 minutos de indisponibilidad al mes**.
+
 ### Tabla 2. Disponibilidad compuesta del proyecto
 
 | Componente | SLA individual | SLA redundante | En serie o paralelo | Costo extra de redundancia (USD/mes) |
 |---|---:|---:|---|---:|
-| DNS | | | | |
-| Balanceador | | | | |
-| Cómputo | | | | |
-| Base de datos | | | | |
-| Objetos | | | | |
-| Compuesto sin / con redundancia | | | | |
-| Minutos al mes sin / con redundancia | | | | |
+| Azure Standard Load Balancer | 99.99% | 99.99% | Serie | Pendiente |
+| Cómputo — Azure Virtual Machines | 99.9% | 99.99% | Serie / Paralelo entre zonas | Pendiente |
+| Base de datos — Azure SQL Database | 99.99% | 99.995% | Serie | Pendiente |
+| Objetos — Azure Blob Storage | 99.9% | 99.9% | Serie | Pendiente |
+| **Compuesto sin / con redundancia** | **99.7801%** | **99.8750%** | — | — |
+| **Minutos al mes sin / con redundancia** | **94.98 min** | **53.99 min** | — | — |
+
+### 4.5 Análisis de resultados
+
+- La arquitectura sin redundancia ofrece una disponibilidad compuesta aproximada de **99.7801%**, equivalente a **94.98 minutos** de inactividad potencial al mes.
+- La arquitectura con redundancia mejora a **99.8750%**, equivalente a **53.99 minutos** de inactividad potencial al mes.
+- La redundancia reduce aproximadamente **40.99 minutos** de indisponibilidad potencial al mes.
+- En el escenario inicial, los componentes más débiles son **Azure Virtual Machines** y **Azure Blob Storage**, ambos con un SLA de **99.9%**.
+- En el escenario mejorado, el eslabón más débil continúa siendo **Azure Blob Storage**, con **99.9%**, por lo que limita el techo de disponibilidad de la cadena completa.
+- El costo adicional de redundancia queda pendiente hasta recuperar o estimar los costos mensuales de la Práctica 1.
+
+### 4.6 Diagrama lógico de la arquitectura redundante
+
+```text
+                 Usuario
+                    │
+                    ▼
+      Azure Standard Load Balancer
+                    │
+             ┌──────┴──────┐
+             ▼             ▼
+          VM AZ1         VM AZ2
+             │             │
+             └──────┬──────┘
+                    ▼
+        Azure SQL Database (ZR)
+                    │
+                    ▼
+        Azure Blob Storage (ZRS)
+```
+
+- **Serie:** Load Balancer, Azure SQL Database y Azure Blob Storage.
+- **Redundante/paralelo:** capa de Azure Virtual Machines entre zonas de disponibilidad.
 
 ## 5. SLOs del proyecto
 
